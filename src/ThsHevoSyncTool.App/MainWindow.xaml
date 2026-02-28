@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
+        Icon="Assets/ThsHevoSyncTool.ico"
         Title="同花顺远航版 本地配置同步工具" Height="760" Width="1180" MinHeight="620" MinWidth="980">
     <Window.Resources>
         <Style TargetType="TextBlock" x:Key="WrapTextBlock">

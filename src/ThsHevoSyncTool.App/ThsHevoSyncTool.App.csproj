@@ -13,6 +13,11 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>ThsHevoSyncTool</AssemblyName>
     <RootNamespace>ThsHevoSyncTool</RootNamespace>
+    <ApplicationIcon>Assets\ThsHevoSyncTool.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\ThsHevoSyncTool.ico" />
+  </ItemGroup>
 
 </Project>
