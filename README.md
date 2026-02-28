@@ -37,7 +37,50 @@ dotnet publish .\\src\\ThsHevoSyncTool.App\\ThsHevoSyncTool.App.csproj `
 
 ## 项目结构
 
-- `src/ThsHevoSyncTool.App`：WPF 图形界面
-- `src/ThsHevoSyncTool.Core`：导出/导入与文件处理核心逻辑
-- `tests/`：单元测试
+- `src/ThsHevoSyncTool.App/`：WPF 图形界面（选择安装路径、账号目录、勾选导出/导入选项）
+- `src/ThsHevoSyncTool.Core/`：导出/导入核心逻辑（选项清单、路径规则、打包与导入）
+- `tests/ThsHevoSyncTool.Core.Tests/`：核心逻辑单测
+- `dist/`：本地发布输出（不提交到 git，Release 中提供 `ThsHevoSyncTool.exe`）
 
+## 备份包的文件结构
+
+备份包（zip）里保存的是**相对于同花顺安装目录**的文件路径；其中和账号相关的路径使用占位符：
+
+- `{USER}`：账号目录名（形如 `mx_*`，由工具界面下拉框选择）
+- 账号相关根目录：`bin\users\{USER}`
+- 全局配置目录：`bin\users\config`（跨账号）
+
+## 选项与选择（导出/导入）
+
+工具把可导出/导入的内容拆成若干“选项（Category）”，每个选项对应一组路径规则（文件或目录通配）。
+
+### 导出页默认选择（“仅核心”）
+
+导出页默认勾选“核心”选项（等价于点击“仅核心”），用于在不同机器间迁移最常用且影响最大的配置：
+
+- 自定义指标：`bin\users\{USER}\function\CustomIndicator\*.json`、`bin\users\{USER}\function\candle\*.py`
+- 自定义指标分组与排序：`bin\users\{USER}\function\MyLanguageGroupOrder.xml`
+- 指标组合（主图/副图预设）：`bin\users\{USER}\index_setting\IndexCombination\IndexCombination.xml`
+- 指标包参数/模板：`bin\users\{USER}\index_setting\IndexConfig\*.json`（递归）
+- 多周期/多分屏指标选择：`bin\users\{USER}\index_setting\MutilPeriod*.ini`、`bin\users\{USER}\index_setting\index_show.ini`
+- 页面图位指标勾选（页面级）：`bin\users\{USER}\UserPageCoding.xml`
+- 页面停靠布局（窗口/面板布局）：`bin\users\{USER}\CustomPage\CustomDockingTemplate\*.config`
+- 页面模板配置：`bin\users\{USER}\CustomPage\CustomPageTemplate\*.xml`、`bin\users\{USER}\CustomPage\pluginusages.json`
+- 画线工具设置（非画线数据）：`bin\users\{USER}\DrawLine_New\config.ini`、`bin\users\{USER}\DrawLine_New\NewLineDefaultProperty.json`
+
+### 其它可选项（“全选/全不选”）
+
+除“核心”外，还包含更多可选项（例如表头列宽、插件设置、自选/预警、全局配置、公共笔记等）。
+
+你可以在界面中：
+
+- 点击“全选 / 全不选 / 仅核心”快速切换勾选
+- 在表格中多选行后，用“勾选选中项 / 取消选中项”批量调整
+- 右侧“选项详情”查看该选项对应的路径规则
+
+### 导入页的可选/默认勾选规则
+
+导入页在选择 zip 后，会读取备份包的 `manifest`：
+
+- 只有**在备份包中存在文件**的选项才可勾选（否则置灰）
+- 可勾选的“核心”选项会被默认勾选
