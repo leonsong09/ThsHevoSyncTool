@@ -1,0 +1,243 @@
+<Window x:Class="ThsHevoSyncTool.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="同花顺远航版 本地配置同步工具" Height="760" Width="1180" MinHeight="620" MinWidth="980">
+    <Window.Resources>
+        <Style TargetType="TextBlock" x:Key="WrapTextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="12" LastChildFill="True">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="安装路径：" VerticalAlignment="Center" />
+            <TextBox Width="520" Margin="6,0,0,0" Text="{Binding InstallPath, UpdateSourceTrigger=PropertyChanged}" />
+            <Button Margin="6,0,0,0" Padding="10,4" Content="浏览..." Command="{Binding BrowseInstallPathCommand}" />
+            <Button Margin="6,0,0,0" Padding="10,4" Content="扫描/刷新" Command="{Binding RefreshCommand}" />
+
+            <TextBlock Margin="18,0,0,0" Text="账号目录(mx_*):" VerticalAlignment="Center" />
+            <ComboBox Width="190" Margin="6,0,0,0"
+                      ItemsSource="{Binding UserDirectories}"
+                      SelectedItem="{Binding SelectedUserDirectory, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Margin="18,0,0,0" Text="{Binding StatusText}" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <TabControl Margin="0,12,0,0">
+            <TabItem Header="导出">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal">
+                        <Button Padding="10,4" Content="仅核心" Command="{Binding ExportSelectCoreCommand}" />
+                        <Button Margin="8,0,0,0" Padding="10,4" Content="全选" Command="{Binding ExportSelectAllCommand}" />
+                        <Button Margin="8,0,0,0" Padding="10,4" Content="全不选" Command="{Binding ExportSelectNoneCommand}" />
+                        <Button Margin="8,0,0,0" Padding="10,4" Content="勾选选中项" Click="CheckSelectedExportRows" />
+                        <Button Margin="8,0,0,0" Padding="10,4" Content="取消选中项" Click="UncheckSelectedExportRows" />
+                        <TextBlock Margin="18,0,0,0" VerticalAlignment="Center"
+                                   Text="提示：导出/导入前需关闭同花顺进程。" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="1" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="320" />
+                        </Grid.ColumnDefinitions>
+
+                        <DataGrid x:Name="ExportDataGrid"
+                                  ItemsSource="{Binding ExportOptions}"
+                                  SelectedItem="{Binding SelectedExportOption}"
+                                  AutoGenerateColumns="False"
+                                  SelectionMode="Extended"
+                                  SelectionUnit="FullRow"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="56" Header="选中">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                      IsEnabled="{Binding IsSelectable}" HorizontalAlignment="Center" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Width="180" Header="名称" Binding="{Binding Name}" />
+                                <DataGridTextColumn Width="*" Header="说明" Binding="{Binding Description}">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource WrapTextBlock}" />
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Width="80" Header="文件数" Binding="{Binding FileCountText}" />
+                                <DataGridTextColumn Width="90" Header="大小" Binding="{Binding TotalSizeText}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <GroupBox Grid.Column="1" Header="选项详情" Margin="12,0,0,0">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel Margin="8">
+                                    <TextBlock FontWeight="Bold" Text="{Binding SelectedExportOption.Name}" />
+                                    <TextBlock Margin="0,6,0,0" Text="{Binding SelectedExportOption.Description}" TextWrapping="Wrap" />
+
+                                    <TextBlock Margin="0,10,0,0" FontWeight="Bold" Text="包含路径规则：" />
+                                    <ItemsControl ItemsSource="{Binding SelectedExportOption.PathRules}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock FontFamily="Consolas" Text="{Binding}" TextWrapping="Wrap" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </GroupBox>
+                    </Grid>
+
+                    <Grid Grid.Row="2" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="导出为(zip)：" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Margin="6,0,0,0" Text="{Binding ExportZipPath, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Column="2" Margin="6,0,0,0" Padding="10,4" Content="选择..." Command="{Binding BrowseExportZipCommand}" />
+                        <Button Grid.Column="3" Margin="12,0,0,0" Padding="16,6" Content="开始导出" Command="{Binding StartExportCommand}" />
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="导入">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="备份包(zip)：" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Margin="6,0,0,0" Text="{Binding ImportZipPath, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Column="2" Margin="6,0,0,0" Padding="10,4" Content="选择..." Command="{Binding BrowseImportZipCommand}" />
+                    </Grid>
+
+                    <GroupBox Grid.Row="1" Header="备份包信息" Margin="0,10,0,0">
+                        <TextBox Margin="8" IsReadOnly="True" Text="{Binding ImportManifestSummary}" TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto" />
+                    </GroupBox>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Padding="10,4" Content="仅核心" Command="{Binding ImportSelectCoreCommand}" />
+                        <Button Margin="8,0,0,0" Padding="10,4" Content="全选" Command="{Binding ImportSelectAllCommand}" />
+                        <Button Margin="8,0,0,0" Padding="10,4" Content="全不选" Command="{Binding ImportSelectNoneCommand}" />
+                        <Button Margin="8,0,0,0" Padding="10,4" Content="勾选选中项" Click="CheckSelectedImportRows" />
+                        <Button Margin="8,0,0,0" Padding="10,4" Content="取消选中项" Click="UncheckSelectedImportRows" />
+                        <TextBlock Margin="18,0,0,0" VerticalAlignment="Center"
+                                   Text="说明：导入前会自动生成 pre_import_backup_*.zip 备份后再覆盖写入。" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="3" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="320" />
+                        </Grid.ColumnDefinitions>
+
+                        <DataGrid x:Name="ImportDataGrid"
+                                  ItemsSource="{Binding ImportOptions}"
+                                  SelectedItem="{Binding SelectedImportOption}"
+                                  AutoGenerateColumns="False"
+                                  SelectionMode="Extended"
+                                  SelectionUnit="FullRow"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="56" Header="选中">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                      IsEnabled="{Binding IsSelectable}" HorizontalAlignment="Center" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Width="180" Header="名称" Binding="{Binding Name}" />
+                                <DataGridTextColumn Width="*" Header="说明" Binding="{Binding Description}">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource WrapTextBlock}" />
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Width="80" Header="包内文件" Binding="{Binding FileCountText}" />
+                                <DataGridTextColumn Width="90" Header="大小" Binding="{Binding TotalSizeText}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <GroupBox Grid.Column="1" Header="选项详情" Margin="12,0,0,0">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel Margin="8">
+                                    <TextBlock FontWeight="Bold" Text="{Binding SelectedImportOption.Name}" />
+                                    <TextBlock Margin="0,6,0,0" Text="{Binding SelectedImportOption.Description}" TextWrapping="Wrap" />
+
+                                    <TextBlock Margin="0,10,0,0" FontWeight="Bold" Text="包含路径规则：" />
+                                    <ItemsControl ItemsSource="{Binding SelectedImportOption.PathRules}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock FontFamily="Consolas" Text="{Binding}" TextWrapping="Wrap" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </GroupBox>
+                    </Grid>
+
+                    <Grid Grid.Row="4" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="导入前备份目录：" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Margin="6,0,0,0" Text="{Binding ImportBackupDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Column="2" Margin="6,0,0,0" Padding="10,4" Content="选择..." Command="{Binding BrowseImportBackupDirectoryCommand}" />
+                        <Button Grid.Column="3" Margin="12,0,0,0" Padding="16,6" Content="开始导入" Command="{Binding StartImportCommand}" />
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <GroupBox DockPanel.Dock="Bottom" Header="日志" Margin="0,12,0,0" Height="180">
+            <Grid Margin="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ProgressBar Height="16" Minimum="0" Maximum="1" Value="{Binding ProgressValue}" />
+                    <TextBlock Grid.Column="1" Margin="10,0,0,0" Text="{Binding ProgressText}" VerticalAlignment="Center" />
+                </Grid>
+                <TextBox Grid.Row="1" Margin="0,8,0,0" Text="{Binding LogText}" IsReadOnly="True"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="Wrap" />
+            </Grid>
+        </GroupBox>
+    </DockPanel>
+</Window>

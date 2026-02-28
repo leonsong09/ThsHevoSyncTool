@@ -1,0 +1,17 @@
+.ace-tool/
+
+# .NET build outputs
+**/bin/
+**/obj/
+.vs/
+
+# Local toolchains / caches
+.tools/
+
+# Local distribution artifacts (exe is published via GitHub Releases)
+dist/
+
+# OS / editor
+Thumbs.db
+*.user
+*.suo
