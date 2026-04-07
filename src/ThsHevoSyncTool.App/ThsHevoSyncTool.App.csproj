@@ -16,6 +16,10 @@
     <ApplicationIcon>Assets\ThsHevoSyncTool.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(PublishSingleFile)' == 'true'">
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
   <ItemGroup>
     <Resource Include="Assets\ThsHevoSyncTool.ico" />
   </ItemGroup>

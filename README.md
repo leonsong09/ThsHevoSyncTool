@@ -29,10 +29,24 @@ dotnet restore
 dotnet build -c Release
 dotnet test -c Release
 
-# 生成 Windows x64 单文件可执行程序（自包含）
+# 生成并校验 Windows x64 单文件可执行程序（自包含）
+.\scripts\publish-single-file.ps1
+
+# 需要自定义输出目录时
+.\scripts\publish-single-file.ps1 -OutputDir 'dist/release'
+```
+
+脚本默认输出到 `dist/self-contained-single/`，上传 Release 时使用其中的
+`ThsHevoSyncTool.exe`。
+
+如需手动执行底层发布命令，必须保留 `IncludeNativeLibrariesForSelfExtract=true`，否则 WPF
+单文件发布可能退化为“只上传 exe 但运行时缺少 native 依赖”的伪单文件：
+
+```powershell
 dotnet publish .\\src\\ThsHevoSyncTool.App\\ThsHevoSyncTool.App.csproj `
   -c Release -r win-x64 --self-contained true `
-  /p:PublishSingleFile=true
+  /p:PublishSingleFile=true `
+  /p:IncludeNativeLibrariesForSelfExtract=true
 ```
 
 ## 项目结构
