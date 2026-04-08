@@ -136,6 +136,10 @@ public sealed partial class MainViewModel
 
     private void ApplyManifestToImportOptions(BackupManifest manifest)
     {
+        var selectedCategories = new HashSet<string>(
+            manifest.Selection.Categories,
+            StringComparer.OrdinalIgnoreCase);
+
         var map = manifest.Files
             .GroupBy(static f => f.CategoryId, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(
@@ -149,17 +153,16 @@ public sealed partial class MainViewModel
             {
                 option.FileCount = stats.Count;
                 option.TotalBytes = stats.Bytes;
-                option.IsAvailable = stats.Count > 0;
-                option.IsSelected = option.IsCoreDefault && option.IsAvailable;
+                option.IsAvailable = true;
+                option.IsSelected = selectedCategories.Contains(option.Id);
             }
             else
             {
                 option.FileCount = 0;
                 option.TotalBytes = 0;
-                option.IsAvailable = false;
-                option.IsSelected = false;
+                option.IsAvailable = selectedCategories.Contains(option.Id);
+                option.IsSelected = selectedCategories.Contains(option.Id);
             }
         }
     }
 }
-
