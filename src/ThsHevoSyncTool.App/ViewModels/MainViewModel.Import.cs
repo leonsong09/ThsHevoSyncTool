@@ -9,11 +9,18 @@ public sealed partial class MainViewModel
     private string _importManifestSummary = string.Empty;
     private string _importBackupDirectory = string.Empty;
     private BackupManifest? _loadedManifest;
+    private int _importManifestLoadVersion;
 
     public string ImportZipPath
     {
         get => _importZipPath;
-        set => SetProperty(ref _importZipPath, value);
+        set
+        {
+            if (SetProperty(ref _importZipPath, value))
+            {
+                TryLoadManifestForImportZipPath(value);
+            }
+        }
     }
 
     public string ImportManifestSummary
@@ -37,12 +44,38 @@ public sealed partial class MainViewModel
         }
 
         ImportZipPath = selected;
-        _ = LoadManifestAsync();
     }
 
-    private async Task LoadManifestAsync()
+    private void TryLoadManifestForImportZipPath(string zipPath)
     {
-        if (string.IsNullOrWhiteSpace(ImportZipPath))
+        if (string.IsNullOrWhiteSpace(zipPath) ||
+            !zipPath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        string fullZipPath;
+        try
+        {
+            fullZipPath = Path.GetFullPath(zipPath);
+        }
+        catch
+        {
+            return;
+        }
+
+        if (!File.Exists(fullZipPath))
+        {
+            return;
+        }
+
+        var requestVersion = Interlocked.Increment(ref _importManifestLoadVersion);
+        _ = LoadManifestAsync(fullZipPath, requestVersion);
+    }
+
+    private async Task LoadManifestAsync(string zipPath, int requestVersion)
+    {
+        if (string.IsNullOrWhiteSpace(zipPath))
         {
             return;
         }
@@ -53,16 +86,23 @@ public sealed partial class MainViewModel
 
         try
         {
-            _loadedManifest = await _packageReader.ReadManifestAsync(ImportZipPath, CancellationToken.None);
+            var manifest = await _packageReader.ReadManifestAsync(zipPath, CancellationToken.None);
+            if (requestVersion != Volatile.Read(ref _importManifestLoadVersion) ||
+                !IsCurrentImportZipPath(zipPath))
+            {
+                return;
+            }
+
+            _loadedManifest = manifest;
             ImportManifestSummary = BuildManifestSummary(_loadedManifest);
             ApplyManifestToImportOptions(_loadedManifest);
 
             if (string.IsNullOrWhiteSpace(ImportBackupDirectory))
             {
-                ImportBackupDirectory = Path.GetDirectoryName(ImportZipPath) ?? string.Empty;
+                ImportBackupDirectory = Path.GetDirectoryName(zipPath) ?? string.Empty;
             }
 
-            AppendLog($"已读取备份包：{ImportZipPath}");
+            AppendLog($"已读取备份包：{zipPath}");
         }
         finally
         {
@@ -131,6 +171,23 @@ public sealed partial class MainViewModel
         {
             ProgressText = "就绪";
             IsBusy = false;
+        }
+    }
+
+    private bool IsCurrentImportZipPath(string zipPath)
+    {
+        if (string.IsNullOrWhiteSpace(ImportZipPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            return string.Equals(Path.GetFullPath(ImportZipPath), zipPath, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
         }
     }
 
