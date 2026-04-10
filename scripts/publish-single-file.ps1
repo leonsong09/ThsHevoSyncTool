@@ -13,6 +13,7 @@ Set-StrictMode -Version Latest
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $projectPath = Join-Path $repoRoot 'src/ThsHevoSyncTool.App/ThsHevoSyncTool.App.csproj'
 $outputPath = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $OutputDir))
+$versionPropsPath = Join-Path $repoRoot 'Directory.Build.props'
 
 function Assert-DotnetSdkAvailable {
     $sdks = & dotnet --list-sdks 2>$null
@@ -56,6 +57,25 @@ function Assert-PathWithinRepo {
     if (-not $Path.StartsWith($repoRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
         throw "路径越界：$Path"
     }
+}
+
+function Get-ReleaseVersion {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $VersionFilePath
+    )
+
+    if (-not (Test-Path -LiteralPath $VersionFilePath)) {
+        return $null
+    }
+
+    [xml] $versionXml = Get-Content -LiteralPath $VersionFilePath
+    $version = $versionXml.Project.PropertyGroup.Version | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace($version)) {
+        return $null
+    }
+
+    return $version.Trim()
 }
 
 function Assert-StandalonePublishOutput {
@@ -155,7 +175,13 @@ function New-ReleaseArtifacts {
         New-Item -ItemType Directory -Path $fullRoot | Out-Null
     }
 
-    $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($ExePath).FileVersion
+    $version = Get-ReleaseVersion -VersionFilePath $versionPropsPath
+    if ([string]::IsNullOrWhiteSpace($version)) {
+        $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($ExePath).ProductVersion
+    }
+    if ([string]::IsNullOrWhiteSpace($version)) {
+        $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($ExePath).FileVersion
+    }
     if ([string]::IsNullOrWhiteSpace($version)) {
         $version = '0.0.0'
     }

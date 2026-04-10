@@ -9,6 +9,11 @@
 - `ThsHevoSyncTool.exe`（Windows x64 单文件版）
 - `ThsHevoSyncTool-v<version>-win-x64.zip`（打包好的正式发布压缩包）
 
+常用入口：
+
+- 最新版本页：<https://github.com/leonsong09/ThsHevoSyncTool/releases/latest>
+- 全部版本 / 更新日志：<https://github.com/leonsong09/ThsHevoSyncTool/releases>
+
 > 导出/导入前请先关闭同花顺进程。
 
 ## 使用说明
@@ -49,7 +54,14 @@ dotnet test -c Release
 - `dist/ThsHevoSyncTool-v<version>-win-x64/ThsHevoSyncTool.exe`
 - `dist/ThsHevoSyncTool-v<version>-win-x64.zip`
 
-其中版本号来自可执行文件版本信息，适合作为正式发布产物直接上传。
+其中 `<version>` 默认来自仓库根目录 `Directory.Build.props` 的 `Version`，用于统一：
+
+- 程序版本信息
+- 正式发布目录名
+- 正式发布 zip 文件名
+- GitHub Release 标签命名口径
+
+当前仓库统一使用 `vX.Y.Z` 这类版本号格式作为发布口径。
 
 如需手动执行底层发布命令，必须保留 `IncludeNativeLibrariesForSelfExtract=true`，否则 WPF
 单文件发布可能退化为“只上传 exe 但运行时缺少 native 依赖”的伪单文件：
