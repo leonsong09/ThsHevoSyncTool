@@ -4,6 +4,7 @@ using ThsHevoSyncTool.Core.Backup;
 using ThsHevoSyncTool.Core.Environment;
 using ThsHevoSyncTool.Core.IO;
 using ThsHevoSyncTool.Formatting;
+using ThsHevoSyncTool.Services;
 
 namespace ThsHevoSyncTool.ViewModels;
 
@@ -141,6 +142,75 @@ public sealed partial class MainViewModel
         }
     }
 
+    private static void SelectExisting(IEnumerable<CategoryOptionViewModel> options)
+    {
+        foreach (var option in options)
+        {
+            option.IsSelected = option.IsSelectable && option.FileCount > 0;
+        }
+    }
+
+    private static void ApplyPreset(
+        IEnumerable<CategoryOptionViewModel> options,
+        ExportSelectionPreset preset)
+    {
+        var included = preset.SelectedCategoryIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var option in options)
+        {
+            option.IsSelected = option.IsSelectable && included.Contains(option.Id);
+        }
+    }
+
+    private void SaveCustomPreset(
+        string slotId,
+        string displayName,
+        IEnumerable<CategoryOptionViewModel> options)
+    {
+        var selectedCategoryIds = options
+            .Where(static option => option.IsSelected)
+            .Select(static option => option.Id)
+            .OrderBy(static id => id, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (selectedCategoryIds.Length == 0)
+        {
+            throw new InvalidOperationException("未选择任何导出选项，无法保存配置。");
+        }
+
+        var preset = new ExportSelectionUserPreset(
+            SlotId: slotId,
+            DisplayName: displayName,
+            SelectedCategoryIds: selectedCategoryIds,
+            SavedAtUtc: DateTime.UtcNow);
+
+        _exportSelectionUserPresetStore.Save(preset);
+        _customExportPresetsBySlot[slotId] = preset;
+        AppendLog($"已保存 {displayName}：{selectedCategoryIds.Length} 项。");
+        RaiseAllCanExecuteChanged();
+    }
+
+    private void ApplyCustomPreset(
+        string slotId,
+        string displayName,
+        IEnumerable<CategoryOptionViewModel> options)
+    {
+        if (!_customExportPresetsBySlot.TryGetValue(slotId, out var preset))
+        {
+            throw new InvalidOperationException($"尚未保存 {displayName}。");
+        }
+
+        var selected = preset.SelectedCategoryIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var option in options)
+        {
+            option.IsSelected = option.IsSelectable && selected.Contains(option.Id);
+        }
+
+        AppendLog($"已应用 {preset.DisplayName}：{preset.SelectedCategoryIds.Count} 项。");
+    }
+
+    private bool HasCustomPreset(string slotId) =>
+        _customExportPresetsBySlot.ContainsKey(slotId);
+
     private static IReadOnlyList<CategoryOptionViewModel> CreateOptionViewModels(
         IReadOnlyList<BackupCategory> categories,
         bool isImport)
@@ -180,6 +250,16 @@ public sealed partial class MainViewModel
         ExportSelectCoreCommand.RaiseCanExecuteChanged();
         ExportSelectAllCommand.RaiseCanExecuteChanged();
         ExportSelectNoneCommand.RaiseCanExecuteChanged();
+        ExportSelectExistingCommand.RaiseCanExecuteChanged();
+        ExportApplyR1Command.RaiseCanExecuteChanged();
+        ExportApplyR2Command.RaiseCanExecuteChanged();
+        ExportApplyR3Command.RaiseCanExecuteChanged();
+        ExportSaveConfig1Command.RaiseCanExecuteChanged();
+        ExportApplyConfig1Command.RaiseCanExecuteChanged();
+        ExportSaveConfig2Command.RaiseCanExecuteChanged();
+        ExportApplyConfig2Command.RaiseCanExecuteChanged();
+        ExportSaveConfig3Command.RaiseCanExecuteChanged();
+        ExportApplyConfig3Command.RaiseCanExecuteChanged();
         BrowseExportZipCommand.RaiseCanExecuteChanged();
         StartExportCommand.RaiseCanExecuteChanged();
 
@@ -238,3 +318,4 @@ public sealed partial class MainViewModel
         }
     }
 }
+

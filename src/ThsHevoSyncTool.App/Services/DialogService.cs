@@ -1,4 +1,5 @@
 using System.Windows.Forms;
+using System.Windows;
 
 namespace ThsHevoSyncTool.Services;
 
@@ -41,5 +42,16 @@ public sealed class DialogService : IDialogService
         };
 
         return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
+    public bool ConfirmExportPreview(ExportPreviewSummary summary)
+    {
+        var result = System.Windows.MessageBox.Show(
+            summary.ToDisplayText(),
+            "导出预览",
+            System.Windows.MessageBoxButton.OKCancel,
+            System.Windows.MessageBoxImage.Information);
+
+        return result == System.Windows.MessageBoxResult.OK;
     }
 }

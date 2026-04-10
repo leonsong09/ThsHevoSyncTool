@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using ThsHevoSyncTool.Core.Backup;
 using ThsHevoSyncTool.Services;
 using ThsHevoSyncTool.ViewModels;
@@ -26,6 +28,8 @@ public partial class MainWindow : Window
             importPlanner: new BackupImportPlanner(),
             packageImporter: new BackupPackageImporter(),
             dialogService: new DialogService(),
+            exportSelectionUserPresetStore: new JsonExportSelectionUserPresetStore(
+                JsonExportSelectionUserPresetStore.GetDefaultFilePath()),
             processGuard: new InstallRootProcessGuard());
     }
 
@@ -40,6 +44,18 @@ public partial class MainWindow : Window
 
     private void UncheckSelectedImportRows(object sender, RoutedEventArgs e) =>
         SetSelectedRowsChecked(ImportDataGrid, isChecked: false);
+
+    private void CategoryOptionCheckBox_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.CheckBox checkBox)
+        {
+            return;
+        }
+
+        BindingOperations
+            .GetBindingExpression(checkBox, ToggleButton.IsCheckedProperty)?
+            .UpdateSource();
+    }
 
     private static void SetSelectedRowsChecked(DataGrid grid, bool isChecked)
     {

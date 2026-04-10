@@ -4,7 +4,10 @@
 
 ## 下载与运行
 
-在 GitHub Releases 下载 `ThsHevoSyncTool.exe`（Windows x64 单文件版），双击运行即可。
+在 GitHub Releases 下载以下任一产物即可：
+
+- `ThsHevoSyncTool.exe`（Windows x64 单文件版）
+- `ThsHevoSyncTool-v<version>-win-x64.zip`（打包好的正式发布压缩包）
 
 > 导出/导入前请先关闭同花顺进程。
 
@@ -14,8 +17,12 @@
 2. 选择账号目录（形如 `mx_*`），点击“扫描/刷新”。
 3. **导出**：
    - 在“导出”页勾选需要的配置项；
+   - 可使用 `推荐：完整迁移 / 推荐：轻量常用 / 推荐：指标布局` 快速套用推荐勾选；
+   - 可使用 `勾选当前存在项` 自动勾上当前账号目录下实际扫描到内容的项；
+   - 可使用 `保存为配置1 / 配置2 / 配置3` 保存自己的常用勾选组合；
+   - 下次可直接点 `应用配置1 / 配置2 / 配置3` 自动恢复这套勾选；
    - 选择导出 `zip` 路径；
-   - 点击“开始导出”生成备份包。
+   - 点击“开始导出”后，会先弹出导出预览清单（分类、文件数、大小、目标路径），确认后再生成备份包。
 4. **导入**：
    - 在“导入”页选择要导入的 `zip`；
    - 按提示执行导入。
@@ -36,8 +43,13 @@ dotnet test -c Release
 .\scripts\publish-single-file.ps1 -OutputDir 'dist/release'
 ```
 
-脚本默认输出到 `dist/self-contained-single/`，上传 Release 时使用其中的
-`ThsHevoSyncTool.exe`。
+脚本默认会同时生成两类产物：
+
+- `dist/self-contained-single/ThsHevoSyncTool.exe`：原始单文件发布输出
+- `dist/ThsHevoSyncTool-v<version>-win-x64/ThsHevoSyncTool.exe`
+- `dist/ThsHevoSyncTool-v<version>-win-x64.zip`
+
+其中版本号来自可执行文件版本信息，适合作为正式发布产物直接上传。
 
 如需手动执行底层发布命令，必须保留 `IncludeNativeLibrariesForSelfExtract=true`，否则 WPF
 单文件发布可能退化为“只上传 exe 但运行时缺少 native 依赖”的伪单文件：
@@ -89,8 +101,21 @@ dotnet publish .\\src\\ThsHevoSyncTool.App\\ThsHevoSyncTool.App.csproj `
 你可以在界面中：
 
 - 点击“全选 / 全不选 / 仅核心”快速切换勾选
+- 点击“推荐：完整迁移 / 推荐：轻量常用 / 推荐：指标布局”快速套用内置推荐预设
+- 点击“勾选当前存在项”按当前扫描结果自动勾选有实际内容的项
+- 点击“保存为配置1 / 配置2 / 配置3”保存你自己的导出组合
+- 点击“应用配置1 / 配置2 / 配置3”恢复已保存的自定义组合
 - 在表格中多选行后，用“勾选选中项 / 取消选中项”批量调整
 - 右侧“选项详情”查看该选项对应的路径规则
+- 点击“开始导出”后先确认预览清单，再真正写入 zip
+
+### 自定义配置的保存位置
+
+导出页的 `配置1 / 配置2 / 配置3` 会把你当前勾选的分类列表保存到本地：
+
+- `%LocalAppData%\\ThsHevoSyncTool\\export-selection-user-presets.json`
+
+保存的是“勾选了哪些导出项”的分类 ID，不会保存导出 zip 路径本身。
 
 ### 导入页的可选/默认勾选规则
 

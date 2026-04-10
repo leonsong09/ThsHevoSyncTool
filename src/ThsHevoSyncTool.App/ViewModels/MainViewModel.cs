@@ -13,7 +13,9 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly BackupImportPlanner _importPlanner;
     private readonly BackupPackageImporter _packageImporter;
     private readonly IDialogService _dialogService;
+    private readonly IExportSelectionUserPresetStore _exportSelectionUserPresetStore;
     private readonly IProcessGuard _processGuard;
+    private readonly Dictionary<string, ExportSelectionUserPreset> _customExportPresetsBySlot;
 
     private string _installPath = string.Empty;
     private string _statusText = string.Empty;
@@ -35,6 +37,7 @@ public sealed partial class MainViewModel : ObservableObject
         BackupImportPlanner importPlanner,
         BackupPackageImporter packageImporter,
         IDialogService dialogService,
+        IExportSelectionUserPresetStore exportSelectionUserPresetStore,
         IProcessGuard processGuard)
     {
         _exportScanner = exportScanner;
@@ -44,7 +47,10 @@ public sealed partial class MainViewModel : ObservableObject
         _importPlanner = importPlanner;
         _packageImporter = packageImporter;
         _dialogService = dialogService;
+        _exportSelectionUserPresetStore = exportSelectionUserPresetStore;
         _processGuard = processGuard;
+        _customExportPresetsBySlot = _exportSelectionUserPresetStore.LoadAll()
+            .ToDictionary(static item => item.SlotId, StringComparer.OrdinalIgnoreCase);
 
         ExportOptions = new(CreateOptionViewModels(categories, isImport: false));
         ImportOptions = new(CreateOptionViewModels(categories, isImport: true));
@@ -55,6 +61,16 @@ public sealed partial class MainViewModel : ObservableObject
         ExportSelectCoreCommand = new RelayCommand(() => SelectCore(ExportOptions), () => !IsBusy);
         ExportSelectAllCommand = new RelayCommand(() => SelectAll(ExportOptions), () => !IsBusy);
         ExportSelectNoneCommand = new RelayCommand(() => SelectNone(ExportOptions), () => !IsBusy);
+        ExportSelectExistingCommand = new RelayCommand(() => SelectExisting(ExportOptions), () => !IsBusy);
+        ExportApplyR1Command = new RelayCommand(() => ApplyPreset(ExportOptions, ExportSelectionPresetCatalog.R1), () => !IsBusy);
+        ExportApplyR2Command = new RelayCommand(() => ApplyPreset(ExportOptions, ExportSelectionPresetCatalog.R2), () => !IsBusy);
+        ExportApplyR3Command = new RelayCommand(() => ApplyPreset(ExportOptions, ExportSelectionPresetCatalog.R3), () => !IsBusy);
+        ExportSaveConfig1Command = new RelayCommand(() => SaveCustomPreset("config1", "配置1", ExportOptions), () => !IsBusy);
+        ExportApplyConfig1Command = new RelayCommand(() => ApplyCustomPreset("config1", "配置1", ExportOptions), () => !IsBusy && HasCustomPreset("config1"));
+        ExportSaveConfig2Command = new RelayCommand(() => SaveCustomPreset("config2", "配置2", ExportOptions), () => !IsBusy);
+        ExportApplyConfig2Command = new RelayCommand(() => ApplyCustomPreset("config2", "配置2", ExportOptions), () => !IsBusy && HasCustomPreset("config2"));
+        ExportSaveConfig3Command = new RelayCommand(() => SaveCustomPreset("config3", "配置3", ExportOptions), () => !IsBusy);
+        ExportApplyConfig3Command = new RelayCommand(() => ApplyCustomPreset("config3", "配置3", ExportOptions), () => !IsBusy && HasCustomPreset("config3"));
         BrowseExportZipCommand = new RelayCommand(BrowseExportZip, () => !IsBusy);
         StartExportCommand = new AsyncRelayCommand(StartExportAsync, OnCommandError, () => !IsBusy);
 
@@ -80,6 +96,16 @@ public sealed partial class MainViewModel : ObservableObject
     public RelayCommand ExportSelectCoreCommand { get; }
     public RelayCommand ExportSelectAllCommand { get; }
     public RelayCommand ExportSelectNoneCommand { get; }
+    public RelayCommand ExportSelectExistingCommand { get; }
+    public RelayCommand ExportApplyR1Command { get; }
+    public RelayCommand ExportApplyR2Command { get; }
+    public RelayCommand ExportApplyR3Command { get; }
+    public RelayCommand ExportSaveConfig1Command { get; }
+    public RelayCommand ExportApplyConfig1Command { get; }
+    public RelayCommand ExportSaveConfig2Command { get; }
+    public RelayCommand ExportApplyConfig2Command { get; }
+    public RelayCommand ExportSaveConfig3Command { get; }
+    public RelayCommand ExportApplyConfig3Command { get; }
     public RelayCommand BrowseExportZipCommand { get; }
     public AsyncRelayCommand StartExportCommand { get; }
 

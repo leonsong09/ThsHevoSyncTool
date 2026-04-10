@@ -1,4 +1,11 @@
 using System.Reflection;
+using System.Runtime.ExceptionServices;
+using System.Threading;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+using System.Windows.Threading;
 using ThsHevoSyncTool.Core.Backup;
 using ThsHevoSyncTool.Core.IO;
 using ThsHevoSyncTool.Services;
@@ -27,6 +34,7 @@ public sealed class MainViewModelRefreshTests
             importPlanner: new BackupImportPlanner(),
             packageImporter: new BackupPackageImporter(),
             dialogService: new StubDialogService(),
+            exportSelectionUserPresetStore: new StubExportSelectionUserPresetStore(),
             processGuard: new StubProcessGuard());
 
         var manifest = new BackupManifest(
@@ -113,6 +121,7 @@ public sealed class MainViewModelRefreshTests
                 importPlanner: new BackupImportPlanner(),
                 packageImporter: new BackupPackageImporter(),
                 dialogService: new StubDialogService(),
+                exportSelectionUserPresetStore: new StubExportSelectionUserPresetStore(),
                 processGuard: new StubProcessGuard());
 
             InvokePrivate(viewModel, "ApplyManifestToImportOptions", loadedManifest);
@@ -181,6 +190,7 @@ public sealed class MainViewModelRefreshTests
                 importPlanner: new BackupImportPlanner(),
                 packageImporter: new BackupPackageImporter(),
                 dialogService: new StubDialogService(),
+                exportSelectionUserPresetStore: new StubExportSelectionUserPresetStore(),
                 processGuard: new StubProcessGuard());
 
             viewModel.ImportZipPath = zipPath;
@@ -208,6 +218,88 @@ public sealed class MainViewModelRefreshTests
         finally
         {
             tempRoot.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ExportGrid_CheckBoxClick_UpdatesOptionSelection()
+    {
+        Exception? failure = null;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var categories = BackupCategoryCatalog.All;
+                var viewModel = new MainViewModel(
+                    categories: categories,
+                    exportScanner: new BackupCategoryScanner(categories),
+                    exportPlanner: new BackupPlanner(categories),
+                    packageWriter: new BackupPackageWriter(),
+                    packageReader: new BackupPackageReader(),
+                    importPlanner: new BackupImportPlanner(),
+                    packageImporter: new BackupPackageImporter(),
+                    dialogService: new StubDialogService(),
+                    exportSelectionUserPresetStore: new StubExportSelectionUserPresetStore(),
+                    processGuard: new StubProcessGuard());
+
+                var window = new ThsHevoSyncTool.App.MainWindow
+                {
+                    DataContext = viewModel,
+                    WindowStartupLocation = WindowStartupLocation.Manual,
+                    Left = -20000,
+                    Top = -20000,
+                };
+
+                try
+                {
+                    window.Show();
+                    window.UpdateLayout();
+
+                    var grid = FindDescendant<DataGrid>(window, "ExportDataGrid");
+                    Assert.NotNull(grid);
+
+                    var option = Assert.Single(viewModel.ExportOptions.Where(static x => x.Id == "chart_preferences"));
+                    Assert.False(option.IsSelected);
+
+                    grid!.ScrollIntoView(option);
+                    grid.UpdateLayout();
+
+                    var row = (DataGridRow?)grid.ItemContainerGenerator.ContainerFromItem(option);
+                    Assert.NotNull(row);
+
+                    var checkBox = FindDescendant<CheckBox>(row!, name: null);
+                    Assert.NotNull(checkBox);
+                    Assert.False(checkBox!.IsChecked ?? false);
+
+                    checkBox.IsChecked = true;
+                    checkBox.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                    grid.UpdateLayout();
+
+                    Assert.True(option.IsSelected);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+            finally
+            {
+                Dispatcher.CurrentDispatcher.InvokeShutdown();
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (failure is not null)
+        {
+            ExceptionDispatchInfo.Capture(failure).Throw();
         }
     }
 
@@ -250,6 +342,28 @@ public sealed class MainViewModelRefreshTests
         Assert.True(condition(), "等待异步状态更新超时。");
     }
 
+    private static T? FindDescendant<T>(DependencyObject root, string? name)
+        where T : FrameworkElement
+    {
+        if (root is T element &&
+            (name is null || string.Equals(element.Name, name, StringComparison.Ordinal)))
+        {
+            return element;
+        }
+
+        var childCount = VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < childCount; i++)
+        {
+            var found = FindDescendant<T>(VisualTreeHelper.GetChild(root, i), name);
+            if (found is not null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
     private sealed class StubDialogService : IDialogService
     {
         public string? BrowseFolder(string? initialPath) => initialPath;
@@ -258,6 +372,17 @@ public sealed class MainViewModelRefreshTests
             initialDirectory is null ? suggestedFileName : Path.Combine(initialDirectory, suggestedFileName);
 
         public string? OpenZip(string? initialDirectory) => null;
+
+        public bool ConfirmExportPreview(ExportPreviewSummary summary) => true;
+    }
+
+    private sealed class StubExportSelectionUserPresetStore : IExportSelectionUserPresetStore
+    {
+        public IReadOnlyList<ExportSelectionUserPreset> LoadAll() => Array.Empty<ExportSelectionUserPreset>();
+
+        public void Save(ExportSelectionUserPreset preset)
+        {
+        }
     }
 
     private sealed class StubProcessGuard : IProcessGuard

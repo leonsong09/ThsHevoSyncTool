@@ -1,5 +1,6 @@
 using ThsHevoSyncTool.Core.Backup;
 using ThsHevoSyncTool.Formatting;
+using ThsHevoSyncTool.Services;
 
 namespace ThsHevoSyncTool.ViewModels;
 
@@ -52,6 +53,14 @@ public sealed partial class MainViewModel
         try
         {
             var plan = _exportPlanner.CreatePlan(InstallPath, SelectedUserDirectory, selectedCategoryIds);
+            var preview = BuildExportPreviewSummary(plan, ExportOptions, ExportZipPath);
+
+            if (!_dialogService.ConfirmExportPreview(preview))
+            {
+                AppendLog("已取消导出。");
+                return;
+            }
+
             AppendLog($"开始导出：文件数={plan.Files.Count}，大小={ByteFormatter.Format(plan.TotalBytes)}");
 
             var progress = new Progress<BackupProgress>(p =>
@@ -77,5 +86,39 @@ public sealed partial class MainViewModel
             IsBusy = false;
         }
     }
-}
 
+    private static ExportPreviewSummary BuildExportPreviewSummary(
+        BackupPlan plan,
+        IEnumerable<CategoryOptionViewModel> options,
+        string zipPath)
+    {
+        var planMap = plan.Files
+            .GroupBy(static x => x.CategoryId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                static group => group.Key,
+                static group => new
+                {
+                    FileCount = group.Count(),
+                    TotalBytes = group.Sum(static file => file.SizeBytes),
+                },
+                StringComparer.OrdinalIgnoreCase);
+
+        var items = options
+            .Where(static option => option.IsSelected)
+            .Select(option =>
+            {
+                planMap.TryGetValue(option.Id, out var stats);
+                return new ExportPreviewItem(
+                    CategoryId: option.Id,
+                    CategoryName: option.Name,
+                    FileCount: stats?.FileCount ?? 0,
+                    TotalBytes: stats?.TotalBytes ?? 0);
+            })
+            .OrderBy(static item => item.CategoryName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return new ExportPreviewSummary(
+            ZipPath: Path.GetFullPath(zipPath),
+            Items: items);
+    }
+}

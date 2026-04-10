@@ -1,8 +1,10 @@
-param(
+﻿param(
     [string] $Configuration = 'Release',
     [string] $RuntimeIdentifier = 'win-x64',
     [string] $OutputDir = 'dist/self-contained-single',
-    [switch] $SkipSmokeTest
+    [string] $ReleaseArtifactsDir = 'dist',
+    [switch] $SkipSmokeTest,
+    [switch] $SkipReleaseArtifacts
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,6 +47,17 @@ function Reset-OutputDirectory {
     New-Item -ItemType Directory -Path $DirectoryPath | Out-Null
 }
 
+function Assert-PathWithinRepo {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path
+    )
+
+    if (-not $Path.StartsWith($repoRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "路径越界：$Path"
+    }
+}
+
 function Assert-StandalonePublishOutput {
     param(
         [Parameter(Mandatory = $true)]
@@ -84,14 +97,14 @@ function Invoke-ColdStartSmokeTest {
     $extractRoot = Join-Path $smokeRoot 'extract'
     $copiedExe = Join-Path $runDir ([System.IO.Path]::GetFileName($ExePath))
     $process = $null
+    $previousExtractBaseDir = $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR
 
     New-Item -ItemType Directory -Path $runDir | Out-Null
 
     try {
         Copy-Item -LiteralPath $ExePath -Destination $copiedExe
-        $process = Start-Process -FilePath $copiedExe -WorkingDirectory $runDir -Environment @{
-            DOTNET_BUNDLE_EXTRACT_BASE_DIR = $extractRoot
-        } -PassThru
+        $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR = $extractRoot
+        $process = Start-Process -FilePath $copiedExe -WorkingDirectory $runDir -PassThru
 
         Start-Sleep -Seconds 5
 
@@ -112,6 +125,8 @@ function Invoke-ColdStartSmokeTest {
         }
     }
     finally {
+        $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR = $previousExtractBaseDir
+
         if ($null -ne $process -and -not $process.HasExited) {
             Stop-Process -Id $process.Id -Force
             Start-Sleep -Milliseconds 300
@@ -120,6 +135,64 @@ function Invoke-ColdStartSmokeTest {
         if (Test-Path -LiteralPath $smokeRoot) {
             Remove-Item -LiteralPath $smokeRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
+    }
+}
+
+function New-ReleaseArtifacts {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $ExePath,
+        [Parameter(Mandatory = $true)]
+        [string] $RuntimeIdentifier,
+        [Parameter(Mandatory = $true)]
+        [string] $ArtifactsRoot
+    )
+
+    $fullRoot = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $ArtifactsRoot))
+    Assert-PathWithinRepo -Path $fullRoot
+
+    if (-not (Test-Path -LiteralPath $fullRoot)) {
+        New-Item -ItemType Directory -Path $fullRoot | Out-Null
+    }
+
+    $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($ExePath).FileVersion
+    if ([string]::IsNullOrWhiteSpace($version)) {
+        $version = '0.0.0'
+    }
+
+    $safeVersion = ($version -replace '[^0-9A-Za-z._-]', '_')
+    $releaseName = "ThsHevoSyncTool-v$safeVersion-$RuntimeIdentifier"
+    $releaseDir = Join-Path $fullRoot $releaseName
+    $releaseZip = Join-Path $fullRoot ($releaseName + '.zip')
+
+    Reset-OutputDirectory -DirectoryPath $releaseDir
+
+    $retryCount = 20
+    while ($retryCount -gt 0 -and -not (Test-Path -LiteralPath $ExePath)) {
+        Start-Sleep -Milliseconds 200
+        $retryCount -= 1
+    }
+
+    if (-not (Test-Path -LiteralPath $ExePath)) {
+        throw "发布产物不存在，无法创建正式包：$ExePath"
+    }
+
+    $releaseExePath = Join-Path $releaseDir 'ThsHevoSyncTool.exe'
+    Copy-Item -LiteralPath $ExePath -Destination $releaseExePath -Force
+
+    if (Test-Path -LiteralPath $releaseZip) {
+        Remove-Item -LiteralPath $releaseZip -Force
+    }
+
+    Start-Sleep -Milliseconds 300
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($releaseDir, $releaseZip)
+
+    return [pscustomobject]@{
+        Version = $safeVersion
+        ReleaseDir = $releaseDir
+        ReleaseZip = $releaseZip
+        ReleaseExePath = $releaseExePath
     }
 }
 
@@ -152,3 +225,9 @@ if (-not $SkipSmokeTest) {
 
 Write-Host ('Single-file publish succeeded: ' + $exePath)
 Get-ChildItem -LiteralPath $outputPath -File | Select-Object Name, Length
+
+if (-not $SkipReleaseArtifacts) {
+    $releaseArtifacts = New-ReleaseArtifacts -ExePath $exePath -RuntimeIdentifier $RuntimeIdentifier -ArtifactsRoot $ReleaseArtifactsDir
+    Write-Host ('Release artifact directory: ' + $releaseArtifacts.ReleaseDir)
+    Write-Host ('Release artifact zip: ' + $releaseArtifacts.ReleaseZip)
+}
