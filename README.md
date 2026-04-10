@@ -44,6 +44,9 @@ dotnet test -c Release
 # 生成并校验 Windows x64 单文件可执行程序（自包含）
 .\scripts\publish-single-file.ps1
 
+# 创建 / 更新 GitHub Release，并在上传阶段自动绕过当前进程代理
+.\scripts\publish-release.ps1 -NotesFile .\release-notes.md -MakeLatest
+
 # 需要自定义输出目录时
 .\scripts\publish-single-file.ps1 -OutputDir 'dist/release'
 ```
@@ -62,6 +65,23 @@ dotnet test -c Release
 - GitHub Release 标签命名口径
 
 当前仓库统一使用 `vX.Y.Z` 这类版本号格式作为发布口径。
+
+### GitHub Release 上传
+
+如本机启用了 Clash / 代理，且 `gh release upload` 在大文件上容易卡住，可直接使用：
+
+```powershell
+.\scripts\publish-release.ps1 -NotesFile .\release-notes.md -MakeLatest
+```
+
+该脚本会：
+
+- 从 `Directory.Build.props` 解析版本号
+- 默认上传 `dist/ThsHevoSyncTool-v<version>-win-x64.zip`
+- 在当前脚本进程内临时清空 `HTTP_PROXY / HTTPS_PROXY / ALL_PROXY` 等环境变量
+- 通过 GitHub API 直传 release asset
+
+它**不会修改系统代理设置**，只影响当前 PowerShell 进程及其内部上传步骤。
 
 如需手动执行底层发布命令，必须保留 `IncludeNativeLibrariesForSelfExtract=true`，否则 WPF
 单文件发布可能退化为“只上传 exe 但运行时缺少 native 依赖”的伪单文件：
