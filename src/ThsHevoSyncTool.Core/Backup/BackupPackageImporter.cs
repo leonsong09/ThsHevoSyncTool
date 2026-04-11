@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using ThsHevoSyncTool.Core.IO;
 
 namespace ThsHevoSyncTool.Core.Backup;
@@ -6,6 +7,8 @@ namespace ThsHevoSyncTool.Core.Backup;
 public sealed class BackupPackageImporter
 {
     private const int BufferSizeBytes = 1024 * 128;
+    private const string PreImportBackupDefaultPreset = "restore";
+    private const string PreImportBackupToolVersion = "pre-import-backup";
 
     public async Task CreatePreImportBackupZipAsync(
         BackupImportPlan plan,
@@ -14,11 +17,14 @@ public sealed class BackupPackageImporter
         CancellationToken cancellationToken)
     {
         var backupItems = BuildBackupItems(plan);
+        EnsureManifestEntryNameAvailable(backupItems);
+
         var totalFiles = backupItems.Count;
         var totalBytes = backupItems.Sum(static i => i.ExistingSizeBytes);
 
         var completedFiles = 0;
         var completedBytes = 0L;
+        var fileEntries = new List<BackupManifestFileEntry>(totalFiles);
 
         var fullBackupZip = Path.GetFullPath(backupZipPath);
         Directory.CreateDirectory(Path.GetDirectoryName(fullBackupZip) ?? ".");
@@ -52,11 +58,23 @@ public sealed class BackupPackageImporter
                 useAsync: true);
 
             await using var output = entry.Open();
-            await input.CopyToAsync(output, cancellationToken);
+            var sha256 = await Sha256.CopyAndHashAsync(input, output, cancellationToken);
+
+            fileEntries.Add(new BackupManifestFileEntry(
+                RelativePath: item.File.TargetRelativePath,
+                SizeBytes: item.ExistingSizeBytes,
+                Sha256: sha256,
+                LastWriteTimeUtc: item.ExistingLastWriteTimeUtc,
+                CategoryId: item.File.CategoryId));
 
             completedFiles += 1;
             completedBytes += item.ExistingSizeBytes;
         }
+
+        await WriteManifestAsync(
+            zip,
+            CreatePreImportBackupManifest(plan, fileEntries),
+            cancellationToken);
 
         progress?.Report(new BackupProgress(
             Message: "导入前备份完成。",
@@ -152,6 +170,56 @@ public sealed class BackupPackageImporter
         }
 
         return result;
+    }
+
+    private static void EnsureManifestEntryNameAvailable(IReadOnlyCollection<BackupItem> backupItems)
+    {
+        if (backupItems.Any(static item =>
+                string.Equals(
+                    item.File.TargetRelativePath,
+                    BackupPackageWriter.ManifestEntryName,
+                    StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException($"不允许导入前备份文件与 {BackupPackageWriter.ManifestEntryName} 同名。");
+        }
+    }
+
+    private static BackupManifest CreatePreImportBackupManifest(
+        BackupImportPlan plan,
+        IReadOnlyCollection<BackupManifestFileEntry> fileEntries)
+    {
+        var categories = plan.SelectedCategoryIds
+            .OrderBy(static id => id, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return new BackupManifest(
+            SchemaVersion: BackupManifest.CurrentSchemaVersion,
+            Tool: new BackupToolInfo(
+                Name: "ThsHevoSyncTool",
+                Version: PreImportBackupToolVersion,
+                Runtime: RuntimeInformation.FrameworkDescription),
+            CreatedAtUtc: DateTime.UtcNow,
+            Source: new BackupSourceInfo(
+                InstallRoot: plan.TargetInstallRootPath,
+                UserDirName: plan.TargetUserDirName,
+                AppExeVersion: null),
+            Selection: new BackupSelectionInfo(
+                DefaultPreset: PreImportBackupDefaultPreset,
+                Categories: categories),
+            Files: fileEntries
+                .OrderBy(static entry => entry.RelativePath, StringComparer.OrdinalIgnoreCase)
+                .ToArray());
+    }
+
+    private static async Task WriteManifestAsync(
+        ZipArchive zip,
+        BackupManifest manifest,
+        CancellationToken cancellationToken)
+    {
+        var manifestEntry = zip.CreateEntry(BackupPackageWriter.ManifestEntryName, CompressionLevel.Optimal);
+        await using var entryStream = manifestEntry.Open();
+        await using var writer = new StreamWriter(entryStream);
+        await writer.WriteAsync(manifest.ToJson().AsMemory(), cancellationToken);
     }
 
     private sealed record BackupItem(BackupImportPlannedFile File, long ExistingSizeBytes, DateTime ExistingLastWriteTimeUtc);

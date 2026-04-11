@@ -27,6 +27,9 @@ public sealed class BackupImportPlanner
             SourceUserDirName: manifest.Source.UserDirName,
             TargetUserDirName: targetUserDirName,
             TargetInstallRootPath: installRoot.InstallRootPath,
+            SelectedCategoryIds: selected
+                .OrderBy(static id => id, StringComparer.OrdinalIgnoreCase)
+                .ToArray(),
             Files: files);
     }
 

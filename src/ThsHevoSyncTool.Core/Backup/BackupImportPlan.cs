@@ -15,10 +15,10 @@ public sealed record BackupImportPlan(
     string SourceUserDirName,
     string TargetUserDirName,
     string TargetInstallRootPath,
+    IReadOnlyList<string> SelectedCategoryIds,
     IReadOnlyList<BackupImportPlannedFile> Files)
 {
     public int OverwriteCount => Files.Count(static f => f.WillOverwrite);
     public int NewFileCount => Files.Count(static f => !f.WillOverwrite);
     public long TotalBytes => Files.Sum(static f => f.SizeBytes);
 }
-
