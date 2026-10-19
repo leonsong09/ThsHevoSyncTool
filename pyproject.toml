@@ -1,0 +1,25 @@
+[project]
+name = "ThsHevoSyncTool"
+version = "0.2.0"
+description = "同花顺远航版 本地配置 备份/迁移工具（纯 Python：CLI + PyQt6 GUI）"
+requires-python = ">=3.10"
+dependencies = [
+    "PyQt6>=6.4.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+ths-hevo-sync = "ths_hevo_sync.cli:main"
+ths-hevo-sync-gui = "ths_hevo_sync.gui:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["ths_hevo_sync", "ths_hevo_sync.gui"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
