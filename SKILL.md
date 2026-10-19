@@ -22,9 +22,8 @@ description: 同花顺远航版本地配置备份/迁移工具（纯 Python：CL
 # 仅 CLI：无需安装任何依赖
 python cli.py list
 
-# GUI：装 PyQt6（约 100MB，建议用国内镜像）
-python -m venv .venv
-.\.venv\Scripts\python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple PyQt6
+# GUI：一键装环境（自动走国内镜像，失败回退 PyPI）
+python setup_venv.py
 .\.venv\Scripts\python gui.py
 
 # 或者装成包后用入口名

@@ -21,9 +21,8 @@ python cli.py export --root "D:\同花顺" --user mx_123 --out .\backups --prese
 python cli.py import --zip .\backups\ThsHevoSyncTool-xxxx.zip --root "D:\同花顺" --user mx_123        # 预演
 python cli.py import --zip .\backups\ThsHevoSyncTool-xxxx.zip --root "D:\同花顺" --user mx_123 --apply # 写入
 
-# GUI（需 PyQt6）
-python -m venv .venv
-.\.venv\Scripts\python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple PyQt6
+# GUI（需 PyQt6；一键装好虚拟环境，自动走国内镜像）
+python setup_venv.py
 .\.venv\Scripts\python gui.py
 ```
 
@@ -41,6 +40,7 @@ python -m pytest -q tests/test_core.py
 ```
 ths_hevo_sync/     核心库（categories/planner/package/importer/manifest/…）+ cli + gui
 cli.py, gui.py     入口薄壳
+setup_venv.py      一键创建 .venv 并安装 PyQt6（GUI 依赖；CLI 不需要）
 tests/             回归测试
 legacy-csharp/     已退役的 C#/.NET 实现（留档）
 ```

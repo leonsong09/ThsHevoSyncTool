@@ -30,7 +30,7 @@
 
 ## 如需重新构建（不推荐）
 
-需要 .NET SDK 8（本机可用的有系统 dotnet 8.0.x，或旧版留下的 `.tools\dotnet\dotnet.exe`）：
+需要 .NET SDK 8（本机系统 dotnet 8.0.x 即可；原先仓库内的 `.tools\dotnet` 便携 SDK 已随 C# 退役一并删除）：
 
 ```powershell
 dotnet build src\ThsHevoSyncTool.Core\ThsHevoSyncTool.Core.csproj -c Release
