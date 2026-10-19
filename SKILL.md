@@ -1,6 +1,6 @@
 ---
 name: ths-hevo-sync
-description: 同花顺远航版本地配置备份/迁移工具（纯 Python：CLI + PyQt6 GUI，本机 git repo）。把一台机器上的同花顺账号目录(bin\users\mx_*)配置导出为 ZIP 备份包（含 manifest.json + 每文件 SHA256），在另一台机器/另一个账号按分类导入：自定义指标与指标分组、指标脚本、页面布局/停靠布局/模板、图表偏好/表头列宽/面板尺寸、自选与预警公共配置等；导入前自动生成 pre_import_backup_*.zip（同样带 manifest，可直接重新导入=回滚）。备份包格式与历史 C# 版完全互通。触发词=同花顺备份/同花顺配置备份/同花顺配置迁移/同花顺换电脑/同花顺配置同步/同花顺配置转移/自定义指标备份/同花顺指标迁移/ths备份。
+description: 同花顺远航版本地配置备份/迁移工具（纯 Python CLI，零第三方依赖；GUI 为可选外壳，本机 git repo）。把一台机器上的同花顺账号目录(bin\users\mx_*)配置导出为 ZIP 备份包（含 manifest.json + 每文件 SHA256），在另一台机器/另一个账号按分类导入：自定义指标与指标分组、指标脚本、页面布局/停靠布局/模板、图表偏好/表头列宽/面板尺寸、自选与预警公共配置等；导入前自动生成 pre_import_backup_*.zip（同样带 manifest，可直接重新导入=回滚）。备份包格式与历史 C# 版完全互通。触发词=同花顺备份/同花顺配置备份/同花顺配置迁移/同花顺换电脑/同花顺配置同步/同花顺配置转移/自定义指标备份/同花顺指标迁移/ths备份。
 ---
 
 # ths-hevo-sync（同花顺配置备份/迁移）
@@ -13,7 +13,7 @@ description: 同花顺远航版本地配置备份/迁移工具（纯 Python：CL
 | 入口 | 说明 |
 |---|---|
 | **CLI** | `python cli.py <子命令>`（无第三方依赖，纯标准库） |
-| **GUI** | `python gui.py`（需 PyQt6；见 `requirements.txt`） |
+| **GUI（可选）** | `python legacy-shell/gui.py`（PyQt6；外壳在 `legacy-shell/`，**不属于 skill 主线**） |
 | 核心库 | `ths_hevo_sync/`（`categories / planner / package / importer / manifest / …`） |
 
 ## 2. 安装与运行
@@ -22,14 +22,13 @@ description: 同花顺远航版本地配置备份/迁移工具（纯 Python：CL
 # 仅 CLI：无需安装任何依赖
 python cli.py list
 
-# GUI：一键装环境（自动走国内镜像，失败回退 PyPI）
-python setup_venv.py
-.\.venv\Scripts\python gui.py
+# （可选）GUI：一键装环境（自动走国内镜像，失败回退 PyPI）
+python legacy-shell/setup_venv.py
+.\.venv\Scripts\python legacy-shell/gui.py
 
-# 或者装成包后用入口名
+# 或者装成包后用入口名（只装核心 + CLI，零依赖；GUI 不在包里）
 python -m pip install -e .
 ths-hevo-sync list          # CLI
-ths-hevo-sync-gui           # GUI
 ```
 
 ## 3. CLI 子命令
@@ -91,7 +90,8 @@ python -m pytest -q tests/test_core.py     # 14 项：格式互通/预设项数/
 
 ## 8. 结构
 
-- `ths_hevo_sync/`：核心库 + `cli.py` + `gui/`（PyQt6）
-- `cli.py` / `gui.py`：薄壳入口
+- `ths_hevo_sync/`：核心库 + CLI（**零第三方依赖**）
+- `cli.py`：命令行入口（薄壳）
 - `tests/test_core.py`：回归测试
+- `legacy-shell/`：**可选 GUI 外壳**（PyQt6；不随包安装、不被 skill 依赖）
 - `legacy-csharp/`：**已退役**的 C#/.NET 实现（留档，仅作格式对照）

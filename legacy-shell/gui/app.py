@@ -15,12 +15,12 @@ from PyQt6.QtWidgets import (
     QPushButton, QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget,
 )
 
-from .. import version
-from ..categories import ALL_CATEGORIES, PRESETS, get_category
-from ..environment import list_user_directories, validate_install_root
-from ..importer import apply_import, create_import_plan, read_manifest
-from ..package import package_file_name, write_backup_package
-from ..planner import create_plan, scan_categories
+from ths_hevo_sync import version
+from ths_hevo_sync.categories import ALL_CATEGORIES, PRESETS, get_category
+from ths_hevo_sync.environment import list_user_directories, validate_install_root
+from ths_hevo_sync.importer import apply_import, create_import_plan, read_manifest
+from ths_hevo_sync.package import package_file_name, write_backup_package
+from ths_hevo_sync.planner import create_plan, scan_categories
 
 
 def _human(n: int) -> str:

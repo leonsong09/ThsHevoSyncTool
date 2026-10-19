@@ -21,8 +21,10 @@ MIRRORS = [
     "",
 ]
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
-VENV = os.path.join(ROOT, ".venv")
+HERE = os.path.dirname(os.path.abspath(__file__))     # legacy-shell/
+REPO_ROOT = os.path.dirname(HERE)                      # 仓库根
+VENV = os.path.join(REPO_ROOT, ".venv")                # 与仓库其它脚本共用一个 venv
+REQUIREMENTS = os.path.join(HERE, "requirements.txt")
 
 
 def venv_python(venv_dir: str) -> str:
@@ -73,8 +75,7 @@ def main() -> int:
         print(f"[2/3] 升级 pip（源 {mirror or 'PyPI'}）")
         subprocess.run(cmd, env=clean_env())
 
-        cmd = [py, "-m", "pip", "install", "--disable-pip-version-check", "-r",
-               os.path.join(ROOT, "requirements.txt")]
+        cmd = [py, "-m", "pip", "install", "--disable-pip-version-check", "-r", REQUIREMENTS]
         if mirror:
             cmd += ["-i", mirror]
         print(f"[2/3] 安装依赖（源 {mirror or 'PyPI'}）...")
@@ -97,7 +98,7 @@ def main() -> int:
         return 1
 
     print("\n完成。GUI 启动：")
-    print(f'   "{py}" gui.py')
+    print(f'   "{py}" "{os.path.join(HERE, "gui.py")}"')
     return 0
 
 
