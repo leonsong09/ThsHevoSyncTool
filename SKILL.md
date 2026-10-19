@@ -26,6 +26,33 @@ description: 同花顺远航版本地配置备份/迁移工具（ThsHevoSyncTool
 dotnet restore ; dotnet build -c Release ; dotnet run --project src/ThsHevoSyncTool.App
 ```
 
+## 2.1 命令行（CLI，GA/脚本无头调用）
+
+`src/ThsHevoSyncTool.Cli/`（console，`AssemblyName=ths-hevo-sync`），与 WPF GUI 共用 `ThsHevoSyncTool.Core`，不弹窗：
+
+```powershell
+# 构建（仓库根目录；本仓自带 .tools\dotnet\dotnet.exe，也可用系统 dotnet）
+.\.tools\dotnet\dotnet.exe build src\ThsHevoSyncTool.Cli\ThsHevoSyncTool.Cli.csproj -c Release
+# 运行
+.\.tools\dotnet\dotnet.exe src\ThsHevoSyncTool.Cli\bin\Release\net8.0\ths-hevo-sync.dll <子命令> [选项]
+
+list                                                # 列出全部备份分类（core=默认勾选）
+presets                                             # 列出推荐预设 r1/r2/r3
+users  --root <安装根目录>                           # 列出 bin\users\mx_* 账号目录
+scan   --root <安装根目录> --user <mx_xxx>            # 扫描各分类文件数/大小
+export --root <安装根目录> --user <mx_xxx> --out <目录>
+       [--preset r1|r2|r3 | --categories a,b,c] [--zip-name X.zip] [--dry-run]
+inspect --zip <备份包.zip>                            # 读 manifest（版本/源路径/分类/文件清单）
+import --zip <备份包.zip> --root <安装根目录> --user <mx_xxx>
+       [--categories a,b] [--backup-dir <目录>] [--apply]
+```
+
+- **约定**：`export` 只读源配置、写新 ZIP（安全，`--dry-run` 可只预演）；`import` **默认预演**，必须显式 `--apply` 才写入，写入前自动生成 `pre_import_backup_*.zip`。
+- **回滚** = 用 `pre_import_backup_*.zip` 再跑一次 `import --apply`。
+- 缺省分类 = 「仅核心」（与 GUI 的 `core` 预设一致）；`--categories` 的 id 用 `list` 查看。
+- 退出码：`0` 成功 / `1` 业务失败 / `2` 用法错误。
+- 已实测：list / presets / users / scan / export / inspect / import(预演 + `--apply` + 导入前备份) 全通。
+
 ## 3. 使用流程
 
 **准备**：关同花顺 → 打开工具 → 选同花顺远航版**安装目录** → 选账号目录（形如 `mx_*`）→ 点「扫描/刷新」。
