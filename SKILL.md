@@ -30,11 +30,15 @@ dotnet restore ; dotnet build -c Release ; dotnet run --project src/ThsHevoSyncT
 
 `src/ThsHevoSyncTool.Cli/`（console，`AssemblyName=ths-hevo-sync`），与 WPF GUI 共用 `ThsHevoSyncTool.Core`，不弹窗。
 
-**首选：免依赖单文件 EXE（无需 .NET SDK / 运行时）** —— 已发布到 `dist\cli\ths-hevo-sync.exe`（自包含 win-x64，约 65MB；`dist/` 已 gitignore，不入库）：
+**首选：免依赖单文件 EXE（无需 .NET SDK / 运行时）** —— 本机已构建于 `dist\cli\ths-hevo-sync.exe`（自包含 win-x64，约 65MB；`dist/` 已 gitignore，不入库）：
 
 ```powershell
 .\dist\cli\ths-hevo-sync.exe <子命令> [选项]      # 直接跑，零依赖
 ```
+
+**换机器/新环境**：从 GitHub Release 下载同名资产（挂在最新 Release 上，与 GUI 的 zip 并列）：
+
+<https://github.com/leonsong09/ThsHevoSyncTool/releases/latest> → 资产 `ths-hevo-sync.exe`
 
 **备选：源码运行（需 .NET SDK 8）** —— 本机已有系统 dotnet 8.0.x；本仓还自带 `.tools\dotnet\dotnet.exe`：
 
